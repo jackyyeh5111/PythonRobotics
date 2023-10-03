@@ -28,20 +28,22 @@ class State:
         self.y = y
         self.yaw = yaw
         self.v = v
-        self.rear_x = self.x - ((WB / 2) * math.cos(self.yaw))
-        self.rear_y = self.y - ((WB / 2) * math.sin(self.yaw))
+        # self.rear_x = self.x - ((WB / 2) * math.cos(self.yaw))
+        # self.rear_y = self.y - ((WB / 2) * math.sin(self.yaw))
 
     def update(self, a, delta):
         self.x += self.v * math.cos(self.yaw) * dt
         self.y += self.v * math.sin(self.yaw) * dt
         self.yaw += self.v / WB * math.tan(delta) * dt
         self.v += a * dt
-        self.rear_x = self.x - ((WB / 2) * math.cos(self.yaw))
-        self.rear_y = self.y - ((WB / 2) * math.sin(self.yaw))
+        # self.rear_x = self.x - ((WB / 2) * math.cos(self.yaw))
+        # self.rear_y = self.y - ((WB / 2) * math.sin(self.yaw))
 
     def calc_distance(self, point_x, point_y):
-        dx = self.rear_x - point_x
-        dy = self.rear_y - point_y
+        dx = self.x - point_x
+        dy = self.y - point_y
+        # dx = self.rear_x - point_x
+        # dy = self.rear_y - point_y
         return math.hypot(dx, dy)
 
 
@@ -80,8 +82,8 @@ class TargetCourse:
         # To speed up nearest point search, doing it at only first time.
         if self.old_nearest_point_index is None:
             # search nearest point index
-            dx = [state.rear_x - icx for icx in self.cx]
-            dy = [state.rear_y - icy for icy in self.cy]
+            dx = [state.x - icx for icx in self.cx]
+            dy = [state.y - icy for icy in self.cy]
             d = np.hypot(dx, dy)
             ind = np.argmin(d)
             self.old_nearest_point_index = ind
@@ -123,11 +125,12 @@ def pure_pursuit_steer_control(state, trajectory, pind):
         ty = trajectory.cy[-1]
         ind = len(trajectory.cx) - 1
 
-    alpha = math.atan2(ty - state.rear_y, tx - state.rear_x) - state.yaw
+    # alpha = math.atan2(ty - state.rear_y, tx - state.rear_x) - state.yaw
+    alpha = math.atan2(ty - state.y, tx - state.x) - state.yaw
 
-    delta = math.atan2(2.0 * WB * math.sin(alpha) / Lf, 1.0)
+    target_steering = math.atan2(2.0 * WB * math.sin(alpha) / Lf, 1.0)
 
-    return delta, ind
+    return target_steering, ind
 
 
 def plot_arrow(x, y, yaw, length=1.0, width=0.5, fc="r", ec="k"):
@@ -176,10 +179,10 @@ def main():
         # Calc control input
         ai = proportional_control(target_speed, state.v)
         print ("state velocity:", state.v)
-        di, target_ind = pure_pursuit_steer_control(
+        target_steering, target_ind = pure_pursuit_steer_control(
             state, target_course, target_ind)
 
-        state.update(ai, di)  # Control vehicle
+        state.update(ai, target_steering)  # Control vehicle
 
         time += dt
         states.append(time, state)

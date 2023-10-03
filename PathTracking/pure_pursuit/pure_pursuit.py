@@ -9,13 +9,14 @@ author: Atsushi Sakai (@Atsushi_twi)
 import numpy as np
 import math
 import matplotlib.pyplot as plt
+from way_pts import way_pts
 
 # Parameters
 k = 0.1  # look forward gain
 Lfc = 2.0  # [m] look-ahead distance
 Kp = 1.0  # speed proportional gain
 dt = 0.1  # [s] time tick
-WB = 2.9  # [m] wheel base of vehicle
+WB = 1.75  # [m] wheel base of vehicle
 
 show_animation = True
 
@@ -145,15 +146,23 @@ def plot_arrow(x, y, yaw, length=1.0, width=0.5, fc="r", ec="k"):
 
 def main():
     #  target course
-    cx = np.arange(0, 50, 0.5)
-    cy = [math.sin(ix / 5.0) * ix / 2.0 for ix in cx]
+    cx = []
+    cy = []
+    for pt in way_pts:
+        cx.append(pt[0])
+        cy.append(pt[1])
+        
+    # cx = np.arange(0, 50, 0.5)
+    # cy = [math.sin(ix / 5.0) * ix / 2.0 for ix in cx]
 
-    target_speed = 10.0 / 3.6  # [m/s]
-
+    # target_speed = 10.0 / 3.6  # [m/s]
+    target_speed = 15
     T = 100.0  # max simulation time
 
     # initial state
-    state = State(x=-0.0, y=-3.0, yaw=0.0, v=0.0)
+    initx = 0.0
+    inity = -98.0
+    state = State(x=initx, y=inity, yaw=0.0, v=0.0)
 
     lastIndex = len(cx) - 1
     time = 0.0
@@ -166,6 +175,7 @@ def main():
 
         # Calc control input
         ai = proportional_control(target_speed, state.v)
+        print ("state velocity:", state.v)
         di, target_ind = pure_pursuit_steer_control(
             state, target_course, target_ind)
 
@@ -186,28 +196,28 @@ def main():
             plt.plot(cx[target_ind], cy[target_ind], "xg", label="target")
             plt.axis("equal")
             plt.grid(True)
-            plt.title("Speed[km/h]:" + str(state.v * 3.6)[:4])
+            plt.title("Speed: Speed[m/s]:" + str(state.v)[:4])
             plt.pause(0.001)
 
     # Test
     assert lastIndex >= target_ind, "Cannot goal"
 
-    if show_animation:  # pragma: no cover
-        plt.cla()
-        plt.plot(cx, cy, ".r", label="course")
-        plt.plot(states.x, states.y, "-b", label="trajectory")
-        plt.legend()
-        plt.xlabel("x[m]")
-        plt.ylabel("y[m]")
-        plt.axis("equal")
-        plt.grid(True)
+    # if show_animation:  # pragma: no cover
+    #     plt.cla()
+    #     plt.plot(cx, cy, ".r", label="course")
+    #     plt.plot(states.x, states.y, "-b", label="trajectory")
+    #     plt.legend()
+    #     plt.xlabel("x[m]")
+    #     plt.ylabel("y[m]")
+    #     plt.axis("equal")
+    #     plt.grid(True)
 
-        plt.subplots(1)
-        plt.plot(states.t, [iv * 3.6 for iv in states.v], "-r")
-        plt.xlabel("Time[s]")
-        plt.ylabel("Speed[km/h]")
-        plt.grid(True)
-        plt.show()
+    #     plt.subplots(1)
+    #     plt.plot(states.t, [iv * 3.6 for iv in states.v], "-r")
+    #     plt.xlabel("Time[s]")
+    #     plt.ylabel("Speed[km/h]")
+    #     plt.grid(True)
+    #     plt.show()
 
 
 if __name__ == '__main__':
